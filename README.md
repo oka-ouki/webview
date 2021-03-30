@@ -31,7 +31,7 @@ Import the package and start using it:
 ```go
 package main
 
-import "github.com/webview/webview"
+import "github.com/oka-ouki/webview"
 
 func main() {
 	debug := true
