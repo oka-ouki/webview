@@ -127,6 +127,10 @@ type WebView interface {
 	// f must be a function
 	// f must return either value and error or just error
 	Bind(name string, f interface{}) error
+
+	// Take Screenshot and save image file into path.
+	// Only osx yet.
+	Screenshot(path string)
 }
 
 type webview struct {
@@ -320,4 +324,10 @@ func (w *webview) Bind(name string, f interface{}) error {
 	defer C.free(unsafe.Pointer(cname))
 	C.CgoWebViewBind(w.w, cname, C.uintptr_t(index))
 	return nil
+}
+
+func (w *webview) Screenshot(path string) {
+	s := C.CString(path)
+	defer C.free(unsafe.Pointer(s))
+	C.webview_screenshot(w.w, s)
 }

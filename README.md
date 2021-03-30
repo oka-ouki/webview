@@ -39,6 +39,22 @@ func main() {
 	defer w.Destroy()
 	w.SetTitle("Minimal webview example")
 	w.SetSize(800, 600, webview.HintNone)
+	w.Bind("screenshot", func() {
+		imgFilePath := "screenshot_001.png"
+		w.Screenshot(imgFilePath)
+	})
+
+	// Webview Init
+	w.Init(`
+window.onload = function() {
+  document.body.addEventListener('keydown',
+    event => {
+      if (event.key === 's' && event.ctrlKey) {
+        screenshot();
+      }
+    });
+};
+	`)
 	w.Navigate("https://en.m.wikipedia.org/wiki/Main_Page")
 	w.Run()
 }

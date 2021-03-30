@@ -107,6 +107,10 @@ WEBVIEW_API void webview_bind(webview_t w, const char *name,
 WEBVIEW_API void webview_return(webview_t w, const char *seq, int status,
                                 const char *result);
 
+// Take Screenshot and save image file into path.
+// Only osx yet.
+WEBVIEW_API void webview_screenshot(webview_t w, const char *path);
+
 #ifdef __cplusplus
 }
 #endif
@@ -531,6 +535,10 @@ public:
                                    NULL, NULL);
   }
 
+  void screenshot(const std::string path) {
+    // TODO
+  }
+
 private:
   virtual void on_message(const std::string msg) = 0;
   GtkWidget *m_window;
@@ -566,6 +574,10 @@ using browser_engine = gtk_webkit_engine;
 #define NSApplicationActivationPolicyRegular 0
 
 #define WKUserScriptInjectionTimeAtDocumentStart 0
+
+#define NSUTF8StringEncoding 4
+
+#define NSPNGFileType 4
 
 namespace webview {
 
@@ -769,6 +781,41 @@ public:
         nullptr);
   }
 
+  void screenshot(const std::string path) {
+    CGRect webview_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(m_webview, "frame"_sel);
+    auto snapshot_configuration = ((id(*)(id, SEL))objc_msgSend)("WKSnapshotConfiguration"_cls, "new"_sel);
+    ((void (*)(id, SEL, CGRect))objc_msgSend)(snapshot_configuration, "setRect:"_sel, webview_frame);
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(snapshot_configuration, "setAfterScreenUpdates:"_sel, 0);
+
+    id block = (id)(^(id img, CGError err) {
+      if (!err) {
+        // convert image type PNG
+        id data = ((id(*)(id, SEL))objc_msgSend)(img, "TIFFRepresentation"_sel);
+        id bitmapImageRep = ((id(*)(id, SEL, id))objc_msgSend)("NSBitmapImageRep"_cls, "imageRepWithData:"_sel, data);
+        id properties = ((id(*)(id, SEL, id, id))objc_msgSend)(
+            "NSDictionary"_cls, "dictionaryWithObject:forKey:"_sel,
+            ((id(*)(id, SEL, BOOL))objc_msgSend)("NSNumber"_cls, "numberWithBool:"_sel, 1),
+            "NSImageInterlaced"_str);
+        id data_ = ((id(*)(id, SEL, unsigned long, id))objc_msgSend)(bitmapImageRep,
+            "representationUsingType:properties:"_sel,
+            NSPNGFileType,
+            properties);
+
+        // save image
+        id result_file = ((id(*)(id, SEL, const char *))objc_msgSend)(
+            "NSString"_cls, "stringWithUTF8String:"_sel, path.c_str());
+        ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
+            data_, "writeToFile:atomically:"_sel, result_file, 1);
+      }
+    });
+    // take snapshot
+    ((void (*)(id, SEL, id, id))objc_msgSend)(
+        m_webview,"takeSnapshotWithConfiguration:completionHandler:"_sel,
+        snapshot_configuration,
+        block
+    );
+  }
+
 private:
   virtual void on_message(const std::string msg) = 0;
   void close() { ((void (*)(id, SEL))objc_msgSend)(m_window, "close"_sel); }
@@ -825,6 +872,7 @@ public:
   virtual void navigate(const std::string url) = 0;
   virtual void eval(const std::string js) = 0;
   virtual void init(const std::string js) = 0;
+  virtual void screenshot(const std::string path) = 0;
   virtual void resize(HWND) = 0;
 };
 
@@ -884,6 +932,10 @@ public:
   void eval(const std::string js) override {
     m_webview.InvokeScriptAsync(
         L"eval", single_threaded_vector<hstring>({winrt::to_hstring(js)}));
+  }
+
+  void screenshot(const std::string path) override {
+    // TODO
   }
 
   void resize(HWND wnd) override {
@@ -967,6 +1019,10 @@ public:
     LPCWSTR wjs = to_lpwstr(js);
     m_webview->ExecuteScript(wjs, nullptr);
     delete[] wjs;
+  }
+
+  void screenshot(const std::string path) override {
+    // TODO
   }
 
 private:
@@ -1176,6 +1232,7 @@ public:
   void navigate(const std::string url) { m_browser->navigate(url); }
   void eval(const std::string js) { m_browser->eval(js); }
   void init(const std::string js) { m_browser->init(js); }
+  void screenshot(const std::string path) { m_browser->screenshot(path); }
 
 private:
   virtual void on_message(const std::string msg) = 0;
@@ -1341,6 +1398,10 @@ WEBVIEW_API void webview_bind(webview_t w, const char *name,
 WEBVIEW_API void webview_return(webview_t w, const char *seq, int status,
                                 const char *result) {
   static_cast<webview::webview *>(w)->resolve(seq, status, result);
+}
+
+WEBVIEW_API void webview_screenshot(webview_t w, const char *path) {
+  static_cast<webview::webview *>(w)->screenshot(path);
 }
 
 #endif /* WEBVIEW_HEADER */
