@@ -19,6 +19,16 @@ It uses Cocoa/WebKit on macOS, gtk-webkit2 on Linux and Edge on Windows 10.
 If you are interested in writing Webview apps in C/C++, [skip to the next section](#webview-for-cc-developers).
 
 ### Getting started
+Edit go.mod in Your Project:
+
+```
+module github.com/your/project
+
+go 1.13
+
+replace github.com/webview/webview => github.com/oka-ouki/webview master
+```
+
 
 Install Webview library with `go get`:
 
@@ -31,7 +41,7 @@ Import the package and start using it:
 ```go
 package main
 
-import "github.com/oka-ouki/webview"
+import "github.com/webview/webview"
 
 func main() {
 	debug := true
