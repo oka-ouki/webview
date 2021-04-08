@@ -644,6 +644,64 @@ public:
     ((void (*)(id, SEL, id))objc_msgSend)(app, sel_registerName("setDelegate:"),
                                           delegate);
 
+    //id menubar = [[NSMenu alloc] init];
+    id menubar = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenu"_cls, "alloc"_sel),
+                     "init"_sel);
+
+    //id appMenuItem = [[NSMenuItem alloc] init];
+    id appMenuItem = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "init"_sel);
+
+    //[menubar addItem:appMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     menubar,
+                     "addItem:"_sel,
+                     appMenuItem);
+
+    //[NSApp setMainMenu:menubar];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     app,
+                     "setMainMenu:"_sel,
+                     menubar);
+
+    //id appMenu = [[NSMenu alloc] init];
+    id appMenu = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenu"_cls, "alloc"_sel),
+                     "init"_sel);
+
+    //id appName = [[NSProcessInfo processInfo] processName];
+    id appName = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSProcessInfo"_cls, "processInfo"_sel),
+                     "processName"_sel);
+
+    //id quitTitle = [@"Quit " stringByAppendingString:appName];
+    id quitTitle = ((id(*)(id, SEL, id))objc_msgSend)(
+                     "Quit "_str,
+                     "stringByAppendingString:"_sel,
+                     appName);
+
+    //id quitMenuItem = [[NSMenuItem alloc] initWithTitle:quitTitle action:@selector(terminate:) keyEquivalent:@"q"];
+    id quitMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     quitTitle,
+                     "terminate:"_sel,
+                     "q"_str);
+
+    //[appMenu addItem:quitMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     appMenu,
+                     "addItem:"_sel,
+                     quitMenuItem);
+
+    //[appMenuItem setSubmenu:appMenu];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     appMenuItem,
+                     "setSubmenu:"_sel,
+                     appMenu);
+
     // Main window
     if (window == nullptr) {
       m_window = ((id(*)(id, SEL))objc_msgSend)("NSWindow"_cls, "alloc"_sel);
