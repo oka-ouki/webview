@@ -636,6 +636,26 @@ public:
                           "UTF8String"_sel));
                     }),
                     "v@:@@");
+    class_addMethod(cls, "removeCache:"_sel,
+                    (IMP)(+[](id, SEL) {
+                      // NSSet *remove_data_types = [WKWebsiteDataStore allWebsiteDataTypes];
+                      id remove_data_types = ((id(*)(id, SEL))objc_msgSend)(
+                          "WKWebsiteDataStore"_cls, "allWebsiteDataTypes"_sel);
+                      // NSDate *date_from = [NSDate dateWithTimeIntervalSince1970:0];
+                      id date_from = ((id(*)(id, SEL, double))objc_msgSend)(
+                          "NSDate"_cls, "dateWithTimeIntervalSince1970:"_sel, 0);
+                      id block = (id)(^() {
+                        // do something
+                      });
+                      // [[WKWebsiteDataStore defaultDataStore] removeDataOfTypes:remove_data_types modifiedSince:date_from completionHandler:^{}];
+                      ((void (*)(id, SEL, id, id, id))objc_msgSend)(
+                          ((id(*)(id, SEL))objc_msgSend)("WKWebsiteDataStore"_cls, "defaultDataStore"_sel),
+                          "removeDataOfTypes:modifiedSince:completionHandler:"_sel,
+                          remove_data_types,
+                          date_from,
+                          block);
+                    }),
+                    "v@:");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -690,11 +710,25 @@ public:
                      "terminate:"_sel,
                      "q"_str);
 
+    //id removeCacheMenuItem = [[NSMenuItem alloc] initWithTitle:@"Remove Cache" action:@selector(removeCache:) keyEquivalent:@"s"];
+    id removeCacheMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Remove Cache"_str,
+                     "removeCache:"_sel,
+                     "r"_str);
+
     //[appMenu addItem:quitMenuItem];
     ((id(*)(id, SEL, id))objc_msgSend)(
                      appMenu,
                      "addItem:"_sel,
                      quitMenuItem);
+
+    //[appMenu addItem:removeCacheMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     appMenu,
+                     "addItem:"_sel,
+                     removeCacheMenuItem);
 
     //[appMenuItem setSubmenu:appMenu];
     ((id(*)(id, SEL, id))objc_msgSend)(
