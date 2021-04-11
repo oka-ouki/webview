@@ -600,6 +600,9 @@ using browser_engine = gtk_webkit_engine;
 
 #define NSPNGFileType 4
 
+#define WKNavigationActionPolicyCancel 0
+#define WKNavigationActionPolicyAllow 1
+
 namespace webview {
 
 // Helpers to avoid too much typing
@@ -623,6 +626,7 @@ public:
     auto cls =
         objc_allocateClassPair((Class) "NSResponder"_cls, "AppDelegate", 0);
     class_addProtocol(cls, objc_getProtocol("NSTouchBarProvider"));
+    class_addProtocol(cls, objc_getProtocol("WKNavigationDelegate"));
     class_addMethod(cls, "applicationShouldTerminateAfterLastWindowClosed:"_sel,
                     (IMP)(+[](id, SEL, id) -> BOOL { return 1; }), "c@:@");
     class_addMethod(cls, "userContentController:didReceiveScriptMessage:"_sel,
@@ -656,6 +660,21 @@ public:
                           block);
                     }),
                     "v@:");
+    class_addMethod(cls, "webView:decidePolicyForNavigationAction:decisionHandler:"_sel,
+                    (IMP)(+[](id, SEL, id, id navigation_action, void (^decision_handler)(int)) {
+                      id request = ((id (*)(id, SEL))objc_msgSend)(navigation_action, "request"_sel);
+                      id url = ((id (*)(id, SEL))objc_msgSend)(request, "URL"_sel);
+                      id url_str = ((id (*)(id, SEL))objc_msgSend)(url, "host"_sel);
+                      BOOL allow = ((BOOL (*)(id, SEL, id))objc_msgSend)(url_str,
+                          "isEqualToString:"_sel,
+                          "en.m.wikipedia.org"_str);
+                      if (allow) {
+                          decision_handler(WKNavigationActionPolicyAllow);
+                      } else {
+                          decision_handler(WKNavigationActionPolicyCancel);
+                      }
+                    }),
+                    "v@:@@@");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -710,7 +729,7 @@ public:
                      "terminate:"_sel,
                      "q"_str);
 
-    //id removeCacheMenuItem = [[NSMenuItem alloc] initWithTitle:@"Remove Cache" action:@selector(removeCache:) keyEquivalent:@"s"];
+    //id removeCacheMenuItem = [[NSMenuItem alloc] initWithTitle:@"Remove Cache" action:@selector(removeCache:) keyEquivalent:@"r"];
     id removeCacheMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
                      ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
                      "initWithTitle:action:keyEquivalent:"_sel,
@@ -719,19 +738,19 @@ public:
                      "r"_str);
 
     //[appMenu addItem:quitMenuItem];
-    ((id(*)(id, SEL, id))objc_msgSend)(
+    ((void (*)(id, SEL, id))objc_msgSend)(
                      appMenu,
                      "addItem:"_sel,
                      quitMenuItem);
 
     //[appMenu addItem:removeCacheMenuItem];
-    ((id(*)(id, SEL, id))objc_msgSend)(
+    ((void (*)(id, SEL, id))objc_msgSend)(
                      appMenu,
                      "addItem:"_sel,
                      removeCacheMenuItem);
 
     //[appMenuItem setSubmenu:appMenu];
-    ((id(*)(id, SEL, id))objc_msgSend)(
+    ((void (*)(id, SEL, id))objc_msgSend)(
                      appMenuItem,
                      "setSubmenu:"_sel,
                      appMenu);
@@ -798,6 +817,10 @@ public:
     ((void (*)(id, SEL, id, id))objc_msgSend)(
         m_manager, "addScriptMessageHandler:name:"_sel, delegate,
         "external"_str);
+
+    // [_webView setNavigationDelegate:self];
+    ((void (*)(id, SEL, id))objc_msgSend)(m_webview,
+        "setNavigationDelegate:"_sel, delegate);
 
     init(R"script(
                       window.external = {
