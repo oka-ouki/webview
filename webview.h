@@ -671,10 +671,63 @@ public:
                       if (allow) {
                           decision_handler(WKNavigationActionPolicyAllow);
                       } else {
+                          // do something
                           decision_handler(WKNavigationActionPolicyCancel);
                       }
                     }),
                     "v@:@@@");
+    class_addMethod(cls, "snapshot:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                        auto w =
+                            (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                                self, "webview");
+                        assert(w);
+                        CGRect webview_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(w->m_webview, "frame"_sel);
+                        auto snapshot_configuration = ((id(*)(id, SEL))objc_msgSend)("WKSnapshotConfiguration"_cls, "new"_sel);
+                        ((void (*)(id, SEL, CGRect))objc_msgSend)(snapshot_configuration, "setRect:"_sel, webview_frame);
+                        ((void (*)(id, SEL, BOOL))objc_msgSend)(snapshot_configuration, "setAfterScreenUpdates:"_sel, 0);
+
+                        id block = (id)(^(id img, CGError err) {
+                          if (!err) {
+                            // convert image type PNG
+                            id data = ((id(*)(id, SEL))objc_msgSend)(img, "TIFFRepresentation"_sel);
+                            id bitmapImageRep = ((id(*)(id, SEL, id))objc_msgSend)("NSBitmapImageRep"_cls, "imageRepWithData:"_sel, data);
+                            id properties = ((id(*)(id, SEL, id, id))objc_msgSend)(
+                                "NSDictionary"_cls, "dictionaryWithObject:forKey:"_sel,
+                                ((id(*)(id, SEL, BOOL))objc_msgSend)("NSNumber"_cls, "numberWithBool:"_sel, 1),
+                                "NSImageInterlaced"_str);
+                            id data_ = ((id(*)(id, SEL, unsigned long, id))objc_msgSend)(bitmapImageRep,
+                                "representationUsingType:properties:"_sel,
+                                NSPNGFileType,
+                                properties);
+
+                            // prepare image file name
+                            id now = ((id(*)(id, SEL))objc_msgSend)("NSDate"_cls, "date"_sel);
+                            id formatter = ((id(*)(id, SEL))objc_msgSend)(
+                                ((id(*)(id, SEL))objc_msgSend)(
+                                    "NSDateFormatter"_cls, "alloc"_sel),
+                                    "init"_sel);
+                            ((void (*)(id, SEL, id))objc_msgSend)(
+                                formatter, "setDateFormat:"_sel, "YYYYMMddhhmmss"_str);
+                            id img_file_name = ((id(*)(id, SEL, id))objc_msgSend)(
+                                ((id(*)(id, SEL, id))objc_msgSend)(
+                                    formatter, "stringFromDate:"_sel, now),
+                                "stringByAppendingString:"_sel,
+                                ".png"_str);
+                            ((void (*)(id, SEL))objc_msgSend)(formatter, "release"_sel);
+                            // save image
+                            ((void (*)(id, SEL, id, BOOL))objc_msgSend)(
+                                data_, "writeToFile:atomically:"_sel, img_file_name, 1);
+                          }
+                        });
+                        // take snapshot
+                        ((void (*)(id, SEL, id, id))objc_msgSend)(
+                            w->m_webview,"takeSnapshotWithConfiguration:completionHandler:"_sel,
+                            snapshot_configuration,
+                            block
+                        );
+                    }),
+                    "v@:");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -737,6 +790,14 @@ public:
                      "removeCache:"_sel,
                      "r"_str);
 
+    //id snapshotMenuItem = [[NSMenuItem alloc] initWithTitle:@"Snapshot" action:@selector(snapshot:) keyEquivalent:@"s"];
+    id snapshotMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Snapshot"_str,
+                     "snapshot:"_sel,
+                     "s"_str);
+
     //[appMenu addItem:quitMenuItem];
     ((void (*)(id, SEL, id))objc_msgSend)(
                      appMenu,
@@ -748,6 +809,12 @@ public:
                      appMenu,
                      "addItem:"_sel,
                      removeCacheMenuItem);
+
+    //[appMenu addItem:snapshotMenuItem];
+    ((void (*)(id, SEL, id))objc_msgSend)(
+                     appMenu,
+                     "addItem:"_sel,
+                     snapshotMenuItem);
 
     //[appMenuItem setSubmenu:appMenu];
     ((void (*)(id, SEL, id))objc_msgSend)(
