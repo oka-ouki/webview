@@ -1061,6 +1061,11 @@ public:
         "Screenshot"_str,
         "snapshot:"_sel,
         ""_str, 0);
+    ((void (*)(id, SEL, id, SEL, id, int))objc_msgSend)(
+        menu, "insertItemWithTitle:action:keyEquivalent:atIndex:"_sel,
+        "Reload"_str,
+        "reload:"_sel,
+        ""_str, 1);
     ((void (*)(id, SEL, id, id, id))objc_msgSend)(
         menu, "popUpMenuPositioningItem:atLocation:inView:"_sel,
         ((id (*)(id, SEL, int))objc_msgSend)(
