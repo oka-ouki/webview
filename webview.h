@@ -728,6 +728,26 @@ public:
                         );
                     }),
                     "v@:");
+    class_addMethod(cls, "webView:runJavaScriptAlertPanelWithMessage:initiatedByFrame:completionHandler:"_sel,
+                    (IMP)(+[](id, SEL, id webview_, id message, id, void (^completion_handler)()) {
+                      id alert = ((id(*)(id, SEL))objc_msgSend)(
+                          ((id(*)(id, SEL))objc_msgSend)("NSAlert"_cls, "alloc"_sel),
+                          "init"_sel);
+                      ((void (*)(id, SEL, id))objc_msgSend)(
+                          alert, "setMessageText:"_sel, message);
+                      ((void (*)(id, SEL, id))objc_msgSend)(
+                          alert, "setInformativeText:"_sel,
+                          ((id (*)(id, SEL))objc_msgSend)(
+                              ((id (*)(id, SEL))objc_msgSend)(
+                                  webview_, "URL"_sel),
+                              "host"_sel));
+                      ((void (*)(id, SEL, id))objc_msgSend)(
+                          alert, "addButtonWithTitle:"_sel, "Close"_str);
+                      ((id (*)(id, SEL))objc_msgSend)(
+                          alert, "runModal"_sel);
+                      completion_handler();
+                    }),
+                    "v@:@@@@");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
