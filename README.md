@@ -53,6 +53,9 @@ func main() {
 		imgFilePath := "screenshot_001.png"
 		w.Screenshot(imgFilePath)
 	})
+	w.Bind("customContextMenu", func() {
+		w.CustomContextMenu("message")
+	})
 
 	// Webview Init
 	w.Init(`
@@ -63,6 +66,10 @@ window.onload = function() {
         screenshot();
       }
     });
+  document.body.oncontextmenu = event => {
+    customContextMenu();
+    event.preventDefault();
+  };
 };
 	`)
 	w.Navigate("https://en.m.wikipedia.org/wiki/Main_Page")

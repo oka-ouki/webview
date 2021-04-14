@@ -131,6 +131,10 @@ type WebView interface {
 	// Take Screenshot and save image file into path.
 	// Only osx yet.
 	Screenshot(path string)
+
+	// Show custom context-menu.
+	// Only osx yet.
+	CustomContextMenu(message string)
 }
 
 type webview struct {
@@ -330,4 +334,10 @@ func (w *webview) Screenshot(path string) {
 	s := C.CString(path)
 	defer C.free(unsafe.Pointer(s))
 	C.webview_screenshot(w.w, s)
+}
+
+func (w *webview) CustomContextMenu(message string) {
+	s := C.CString(message)
+	defer C.free(unsafe.Pointer(s))
+	C.webview_custom_context_menu(w.w, s)
 }

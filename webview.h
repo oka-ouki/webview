@@ -111,6 +111,10 @@ WEBVIEW_API void webview_return(webview_t w, const char *seq, int status,
 // Only osx yet.
 WEBVIEW_API void webview_screenshot(webview_t w, const char *path);
 
+// Show custom context-menu.
+// Only osx yet.
+WEBVIEW_API void webview_custom_context_menu(webview_t w, const char *message);
+
 #ifdef __cplusplus
 }
 #endif
@@ -557,6 +561,10 @@ public:
   }
 
   void screenshot(const std::string path) {
+    // TODO
+  }
+
+  void custom_context_menu(const std::string message) {
     // TODO
   }
 
@@ -1043,6 +1051,26 @@ public:
     );
   }
 
+  void custom_context_menu(const std::string message) {
+    id menu = ((id(*)(id, SEL, id))objc_msgSend)(
+        ((id(*)(id, SEL))objc_msgSend)("NSMenu"_cls, "alloc"_sel),
+        "initWithTitle:"_sel,
+        "Context Menu"_str);
+    ((void (*)(id, SEL, id, SEL, id, int))objc_msgSend)(
+        menu, "insertItemWithTitle:action:keyEquivalent:atIndex:"_sel,
+        "Screenshot"_str,
+        "snapshot:"_sel,
+        ""_str, 0);
+    ((void (*)(id, SEL, id, id, id))objc_msgSend)(
+        menu, "popUpMenuPositioningItem:atLocation:inView:"_sel,
+        ((id (*)(id, SEL, int))objc_msgSend)(
+            ((id(*)(id, SEL))objc_msgSend)(menu, "itemArray"_sel),
+            "objectAtIndex:"_sel,
+            0),
+        ((id(*)(id, SEL))objc_msgSend)("NSEvent"_cls, "mouseLocation"_sel),
+        m_webview);
+  }
+
 private:
   virtual void on_message(const std::string msg) = 0;
   void close() { ((void (*)(id, SEL))objc_msgSend)(m_window, "close"_sel); }
@@ -1100,6 +1128,7 @@ public:
   virtual void eval(const std::string js) = 0;
   virtual void init(const std::string js) = 0;
   virtual void screenshot(const std::string path) = 0;
+  virtual void custom_context_menu(const std::string message) = 0;
   virtual void resize(HWND) = 0;
 };
 
@@ -1162,6 +1191,10 @@ public:
   }
 
   void screenshot(const std::string path) override {
+    // TODO
+  }
+
+  void custom_context_menu(const std::string message) override {
     // TODO
   }
 
@@ -1249,6 +1282,10 @@ public:
   }
 
   void screenshot(const std::string path) override {
+    // TODO
+  }
+
+  void custom_context_menu(const std::string message) override {
     // TODO
   }
 
@@ -1460,6 +1497,7 @@ public:
   void eval(const std::string js) { m_browser->eval(js); }
   void init(const std::string js) { m_browser->init(js); }
   void screenshot(const std::string path) { m_browser->screenshot(path); }
+  void custom_context_menu(const std::string message) { m_browser->custom_context_menu(message); }
 
 private:
   virtual void on_message(const std::string msg) = 0;
@@ -1629,6 +1667,10 @@ WEBVIEW_API void webview_return(webview_t w, const char *seq, int status,
 
 WEBVIEW_API void webview_screenshot(webview_t w, const char *path) {
   static_cast<webview::webview *>(w)->screenshot(path);
+}
+
+WEBVIEW_API void webview_custom_context_menu(webview_t w, const char *message) {
+  static_cast<webview::webview *>(w)->custom_context_menu(message);
 }
 
 #endif /* WEBVIEW_HEADER */
