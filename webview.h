@@ -627,6 +627,7 @@ public:
         objc_allocateClassPair((Class) "NSResponder"_cls, "AppDelegate", 0);
     class_addProtocol(cls, objc_getProtocol("NSTouchBarProvider"));
     class_addProtocol(cls, objc_getProtocol("WKNavigationDelegate"));
+    class_addProtocol(cls, objc_getProtocol("WKUIDelegate"));
     class_addMethod(cls, "applicationShouldTerminateAfterLastWindowClosed:"_sel,
                     (IMP)(+[](id, SEL, id) -> BOOL { return 1; }), "c@:@");
     class_addMethod(cls, "userContentController:didReceiveScriptMessage:"_sel,
@@ -908,6 +909,9 @@ public:
     // [_webView setNavigationDelegate:self];
     ((void (*)(id, SEL, id))objc_msgSend)(m_webview,
         "setNavigationDelegate:"_sel, delegate);
+    // [_webView setUIDelegate:self];
+    ((void (*)(id, SEL, id))objc_msgSend)(m_webview,
+        "setUIDelegate:"_sel, delegate);
 
     init(R"script(
                       window.external = {
