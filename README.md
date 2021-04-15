@@ -53,8 +53,8 @@ func main() {
 		imgFilePath := "screenshot_001.png"
 		w.Screenshot(imgFilePath)
 	})
-	w.Bind("customContextMenu", func() {
-		w.CustomContextMenu("message")
+	w.Bind("customContextMenu", func(message string) {
+		w.CustomContextMenu(message)
 	})
 
 	// Webview Init
@@ -67,7 +67,7 @@ window.onload = function() {
       }
     });
   document.body.oncontextmenu = event => {
-    customContextMenu();
+    customContextMenu(event.target.tagName);
     event.preventDefault();
   };
 };

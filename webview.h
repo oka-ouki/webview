@@ -769,6 +769,29 @@ public:
                       completion_handler();
                     }),
                     "v@:@@@@");
+    class_addMethod(cls, "copy_link:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      const char * js = {
+                          "var selection = window.getSelection();"
+                          "if (selection.rangeCount > 0){"
+                          " var tmpElement = document.createElement('input');"
+                          " tmpElement.value = selection.getRangeAt(0).startContainer.parentNode.href;"
+                          " document.body.appendChild(tmpElement);"
+                          " tmpElement.select();"
+                          " document.execCommand('copy');"
+                          " tmpElement.parentElement.removeChild(tmpElement);"
+                          "}"};
+                      ((void (*)(id, SEL, id, id))objc_msgSend)(
+                          w->m_webview, "evaluateJavaScript:completionHandler:"_sel,
+                          ((id(*)(id, SEL, const char *))objc_msgSend)(
+                              "NSString"_cls, "stringWithUTF8String:"_sel, js),
+                          nullptr);
+                    }),
+                    "v@:");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -1077,6 +1100,13 @@ public:
         "Reload"_str,
         "reload:"_sel,
         ""_str, 1);
+    if (message.length() == 1 && message[0] =='A') {
+        ((void (*)(id, SEL, id, SEL, id, int))objc_msgSend)(
+            menu, "insertItemWithTitle:action:keyEquivalent:atIndex:"_sel,
+            "Copy Link"_str,
+            "copy_link:"_sel,
+            ""_str, 2);
+    }
     ((void (*)(id, SEL, id, id, id))objc_msgSend)(
         menu, "popUpMenuPositioningItem:atLocation:inView:"_sel,
         ((id (*)(id, SEL, int))objc_msgSend)(
