@@ -115,6 +115,10 @@ WEBVIEW_API void webview_screenshot(webview_t w, const char *path);
 // Only osx yet.
 WEBVIEW_API void webview_custom_context_menu(webview_t w, const char *message);
 
+// Set not allowed host.
+// Only osx yet.
+WEBVIEW_API void webview_set_not_allowed_host(webview_t w, const char *host);
+
 #ifdef __cplusplus
 }
 #endif
@@ -568,6 +572,10 @@ public:
     // TODO
   }
 
+  void set_not_allowed_host(const std::string host) {
+    // TODO
+  }
+
 private:
   virtual void on_message(const std::string msg) = 0;
   GtkWidget *m_window;
@@ -868,6 +876,7 @@ public:
     m_manager =
         ((id(*)(id, SEL))objc_msgSend)(config, "userContentController"_sel);
     m_webview = ((id(*)(id, SEL))objc_msgSend)("WKWebView"_cls, "alloc"_sel);
+    m_host = ""_str;
 
     if (debug) {
       // Equivalent Obj-C:
@@ -1015,7 +1024,6 @@ public:
             "NSString"_cls, "stringWithUTF8String:"_sel, js.c_str()),
         nullptr);
   }
-
   void screenshot(const std::string path) {
     CGRect webview_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(m_webview, "frame"_sel);
     auto snapshot_configuration = ((id(*)(id, SEL))objc_msgSend)("WKSnapshotConfiguration"_cls, "new"_sel);
@@ -1050,7 +1058,6 @@ public:
         block
     );
   }
-
   void custom_context_menu(const std::string message) {
     id menu = ((id(*)(id, SEL, id))objc_msgSend)(
         ((id(*)(id, SEL))objc_msgSend)("NSMenu"_cls, "alloc"_sel),
@@ -1075,6 +1082,10 @@ public:
         ((id(*)(id, SEL))objc_msgSend)("NSEvent"_cls, "mouseLocation"_sel),
         m_webview);
   }
+  void set_not_allowed_host(const std::string host) {
+     m_host = ((id(*)(id, SEL, const char *))objc_msgSend)(
+            "NSString"_cls, "stringWithUTF8String:"_sel, host.c_str());
+  }
 
 private:
   virtual void on_message(const std::string msg) = 0;
@@ -1082,6 +1093,7 @@ private:
   id m_window;
   id m_webview;
   id m_manager;
+  id m_host;
 };
 
 using browser_engine = cocoa_wkwebview_engine;
@@ -1134,6 +1146,7 @@ public:
   virtual void init(const std::string js) = 0;
   virtual void screenshot(const std::string path) = 0;
   virtual void custom_context_menu(const std::string message) = 0;
+  virtual void set_not_allowed_host(const std::string host) = 0;
   virtual void resize(HWND) = 0;
 };
 
@@ -1200,6 +1213,10 @@ public:
   }
 
   void custom_context_menu(const std::string message) override {
+    // TODO
+  }
+
+  void set_not_allowed_host(const std::string host) override {
     // TODO
   }
 
@@ -1291,6 +1308,10 @@ public:
   }
 
   void custom_context_menu(const std::string message) override {
+    // TODO
+  }
+
+  void set_not_allowed_host(const std::string host) override {
     // TODO
   }
 
@@ -1503,6 +1524,7 @@ public:
   void init(const std::string js) { m_browser->init(js); }
   void screenshot(const std::string path) { m_browser->screenshot(path); }
   void custom_context_menu(const std::string message) { m_browser->custom_context_menu(message); }
+  void set_not_allowed_host(const std::string host) { m_browser->set_not_allowed_host(host); }
 
 private:
   virtual void on_message(const std::string msg) = 0;
@@ -1676,6 +1698,10 @@ WEBVIEW_API void webview_screenshot(webview_t w, const char *path) {
 
 WEBVIEW_API void webview_custom_context_menu(webview_t w, const char *message) {
   static_cast<webview::webview *>(w)->custom_context_menu(message);
+}
+
+WEBVIEW_API void webview_set_not_allowed_host(webview_t w, const char *host) {
+  static_cast<webview::webview *>(w)->set_not_allowed_host(host);
 }
 
 #endif /* WEBVIEW_HEADER */

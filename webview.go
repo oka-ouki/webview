@@ -135,6 +135,10 @@ type WebView interface {
 	// Show custom context-menu.
 	// Only osx yet.
 	CustomContextMenu(message string)
+
+	// Set not allowed host.
+	// Only osx yet.
+	SetNotAllowedHost(host string)
 }
 
 type webview struct {
@@ -340,4 +344,10 @@ func (w *webview) CustomContextMenu(message string) {
 	s := C.CString(message)
 	defer C.free(unsafe.Pointer(s))
 	C.webview_custom_context_menu(w.w, s)
+}
+
+func (w *webview) SetNotAllowedHost(host string) {
+	s := C.CString(host)
+	defer C.free(unsafe.Pointer(s))
+	C.webview_set_not_allowed_host(w.w, s)
 }
