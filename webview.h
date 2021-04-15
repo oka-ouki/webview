@@ -678,14 +678,18 @@ public:
                     }),
                     "v@:");
     class_addMethod(cls, "webView:decidePolicyForNavigationAction:decisionHandler:"_sel,
-                    (IMP)(+[](id, SEL, id, id navigation_action, void (^decision_handler)(int)) {
+                    (IMP)(+[](id self, SEL, id, id navigation_action, void (^decision_handler)(int)) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
                       id request = ((id (*)(id, SEL))objc_msgSend)(navigation_action, "request"_sel);
                       id url = ((id (*)(id, SEL))objc_msgSend)(request, "URL"_sel);
                       id url_str = ((id (*)(id, SEL))objc_msgSend)(url, "host"_sel);
-                      BOOL allow = ((BOOL (*)(id, SEL, id))objc_msgSend)(url_str,
+                      BOOL not_allowed = ((BOOL (*)(id, SEL, id))objc_msgSend)(url_str,
                           "isEqualToString:"_sel,
-                          "en.m.wikipedia.org"_str);
-                      if (allow) {
+                          w->m_host);
+                      if (!not_allowed) {
                           decision_handler(WKNavigationActionPolicyAllow);
                       } else {
                           // do something
