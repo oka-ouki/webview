@@ -792,6 +792,72 @@ public:
                           nullptr);
                     }),
                     "v@:");
+    class_addMethod(cls, "copy_text:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      const char * js = {
+                          "var selection = window.getSelection();"
+                          "if (selection.rangeCount > 0){"
+                          " selection.toString();"
+                          "}"};
+                        id block = (id)(^(id text, CGError err) {
+                          if (!err) {
+                              ((void (*)(id, SEL))objc_msgSend)(
+                                  ((id(*)(id, SEL))objc_msgSend)("NSPasteboard"_cls, "generalPasteboard"_sel),
+                                  "clearContents"_sel);
+                              ((void (*)(id, SEL, id, id))objc_msgSend)(
+                                  ((id(*)(id, SEL))objc_msgSend)("NSPasteboard"_cls, "generalPasteboard"_sel),
+                                  "setString:forType:"_sel,
+                                  text,
+                                  "NSStringPboardType"_str);
+                          }
+                        });
+                      ((void (*)(id, SEL, id, id))objc_msgSend)(
+                          w->m_webview, "evaluateJavaScript:completionHandler:"_sel,
+                          ((id(*)(id, SEL, const char *))objc_msgSend)(
+                              "NSString"_cls, "stringWithUTF8String:"_sel, js),
+                          block);
+                    }),
+                    "v@:");
+    class_addMethod(cls, "paste_text:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      id text = ((id (*)(id, SEL, id))objc_msgSend)(
+                          ((id(*)(id, SEL))objc_msgSend)("NSPasteboard"_cls, "generalPasteboard"_sel),
+                          "stringForType:"_sel,
+                          "NSStringPboardType"_str);
+                      const char *js_first = {
+                          "var element = document.activeElement;"
+                          "if (!!element &&"
+                          "    (element.tagName == 'INPUT' || element.tagName == 'TEXTAREA')){"
+	                      "element.value = element.value.substr(0, element.selectionStart) + '"
+                          };
+                      const char *text_char = ((const char * (*)(id, SEL))objc_msgSend)(text, "UTF8String"_sel);
+                      const char *js_second = {
+                          "' + element.value.substr(element.selectionStart);"
+                          "}"};
+                      id js_nsstring = ((id(*)(id, SEL, const char *))objc_msgSend)(
+                              "NSString"_cls, "stringWithUTF8String:"_sel, js_first);
+                      js_nsstring = ((id(*)(id, SEL, id))objc_msgSend)(
+                              js_nsstring, "stringByAppendingString:"_sel,
+                              ((id(*)(id, SEL, const char *))objc_msgSend)(
+                                  "NSString"_cls, "stringWithUTF8String:"_sel, text_char));
+                      js_nsstring = ((id(*)(id, SEL, id))objc_msgSend)(
+                              js_nsstring, "stringByAppendingString:"_sel,
+                              ((id(*)(id, SEL, const char *))objc_msgSend)(
+                                  "NSString"_cls, "stringWithUTF8String:"_sel, js_second));
+                      ((void (*)(id, SEL, id, id))objc_msgSend)(
+                          w->m_webview, "evaluateJavaScript:completionHandler:"_sel,
+                          js_nsstring,
+                          nullptr);
+                    }),
+                    "v@:");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -810,11 +876,22 @@ public:
                      ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
                      "init"_sel);
 
+    //id editMenuItem = [[NSMenuItem alloc] init];
+    id editMenuItem = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "init"_sel);
+
     //[menubar addItem:appMenuItem];
     ((id(*)(id, SEL, id))objc_msgSend)(
                      menubar,
                      "addItem:"_sel,
                      appMenuItem);
+
+    //[menubar addItem:editMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     menubar,
+                     "addItem:"_sel,
+                     editMenuItem);
 
     //[NSApp setMainMenu:menubar];
     ((id(*)(id, SEL, id))objc_msgSend)(
@@ -862,6 +939,30 @@ public:
                      "snapshot:"_sel,
                      "s"_str);
 
+    //id editMenu = [[NSMenu alloc] init];
+    id editMenu = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenu"_cls, "alloc"_sel),
+                     "init"_sel);
+
+    //[editMenu setTitle:@"Edit"];
+    ((void(*)(id, SEL, id))objc_msgSend)(editMenu, "setTitle:"_sel, "Edit"_str);
+
+    //id copyMenuItem = [[NSMenuItem alloc] initWithTitle:@"Copy" action:@selector(text_copy:) keyEquivalent:@"c"];
+    id copyMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Copy"_str,
+                     "copy_text:"_sel,
+                     "c"_str);
+
+    //id pasteMenuItem = [[NSMenuItem alloc] initWithTitle:@"Paste" action:@selector(text_paste:) keyEquivalent:@"p"];
+    id pasteMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Paste"_str,
+                     "paste_text:"_sel,
+                     "v"_str);
+
     //[appMenu addItem:quitMenuItem];
     ((void (*)(id, SEL, id))objc_msgSend)(
                      appMenu,
@@ -885,6 +986,24 @@ public:
                      appMenuItem,
                      "setSubmenu:"_sel,
                      appMenu);
+
+    //[editMenu addItem:copyMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     editMenu,
+                     "addItem:"_sel,
+                     copyMenuItem);
+
+    //[editMenu addItem:pasteMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     editMenu,
+                     "addItem:"_sel,
+                     pasteMenuItem);
+
+    //[editMenuItem setSubmenu:editMenu];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     editMenuItem,
+                     "setSubmenu:"_sel,
+                     editMenu);
 
     // Main window
     if (window == nullptr) {
