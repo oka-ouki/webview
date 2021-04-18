@@ -858,6 +858,87 @@ public:
                           nullptr);
                     }),
                     "v@:");
+    class_addMethod(cls, "add_bookmark:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      id dialog = ((id(*)(id, SEL))objc_msgSend)(
+                          ((id(*)(id, SEL))objc_msgSend)("NSAlert"_cls, "alloc"_sel),
+                          "init"_sel);
+                      id url = ((id (*)(id, SEL))objc_msgSend)(
+                          ((id (*)(id, SEL))objc_msgSend)(w->m_webview, "URL"_sel),
+                          "absoluteString"_sel);
+                      BOOL has_prefix_http = ((BOOL (*)(id, SEL, id))objc_msgSend)(url,
+                          "hasPrefix:"_sel,
+                          "http"_str);
+                      if (!has_prefix_http) {
+                          id scheme = ((id (*)(id, SEL))objc_msgSend)(
+                              ((id (*)(id, SEL))objc_msgSend)(w->m_webview, "URL"_sel),
+                              "scheme"_sel);
+                          id info_text = ((id(*)(id, SEL, id))objc_msgSend)(
+                                  "This page scheme is '"_str, "stringByAppendingString:"_sel, scheme);
+                          info_text = ((id(*)(id, SEL, id))objc_msgSend)(
+                                  info_text, "stringByAppendingString:"_sel, "'."_str);
+                          ((void (*)(id, SEL, id))objc_msgSend)(
+                              dialog, "setMessageText:"_sel, "Current url scheme is not 'http' or 'https'."_str);
+                          ((void (*)(id, SEL, id))objc_msgSend)(
+                              dialog, "setInformativeText:"_sel, info_text);
+                          ((void (*)(id, SEL, id))objc_msgSend)(
+                              dialog, "addButtonWithTitle:"_sel, "Close"_str);
+                          ((id (*)(id, SEL))objc_msgSend)(
+                              dialog, "runModal"_sel);
+                          return;
+                      }
+                      ((void (*)(id, SEL, id))objc_msgSend)(
+                          dialog, "setMessageText:"_sel, "Are you sure to bookmark this page?"_str);
+                      ((void (*)(id, SEL, id))objc_msgSend)(
+                          dialog, "setInformativeText:"_sel, url);
+                      ((void (*)(id, SEL, id))objc_msgSend)(
+                          dialog, "addButtonWithTitle:"_sel, "OK"_str);
+                      ((void (*)(id, SEL, id))objc_msgSend)(
+                          dialog, "addButtonWithTitle:"_sel, "Cancel"_str);
+                      id result = ((id (*)(id, SEL))objc_msgSend)(
+                          dialog, "runModal"_sel);
+                      if (1000 == (long)result) {
+                          // if OK
+                          const char *js_first = "onAddBookmark('";
+                          const char *url_char = ((const char * (*)(id, SEL))objc_msgSend)(url, "UTF8String"_sel);
+                          const char *js_second = "');";
+                          id js_nsstring = ((id(*)(id, SEL, const char *))objc_msgSend)(
+                                  "NSString"_cls, "stringWithUTF8String:"_sel, js_first);
+                          js_nsstring = ((id(*)(id, SEL, id))objc_msgSend)(
+                                  js_nsstring, "stringByAppendingString:"_sel,
+                                  ((id(*)(id, SEL, const char *))objc_msgSend)(
+                                      "NSString"_cls, "stringWithUTF8String:"_sel, url_char));
+                          js_nsstring = ((id(*)(id, SEL, id))objc_msgSend)(
+                                  js_nsstring, "stringByAppendingString:"_sel,
+                                  ((id(*)(id, SEL, const char *))objc_msgSend)(
+                                      "NSString"_cls, "stringWithUTF8String:"_sel, js_second));
+                          ((void (*)(id, SEL, id, id))objc_msgSend)(
+                              w->m_webview, "evaluateJavaScript:completionHandler:"_sel,
+                              js_nsstring,
+                              nullptr);
+                      }
+                    }),
+                    "v@:");
+    class_addMethod(cls, "show_bookmark:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      const char *js = {
+                          "onShowBookmark();"
+                          };
+                      ((void (*)(id, SEL, id, id))objc_msgSend)(
+                          w->m_webview, "evaluateJavaScript:completionHandler:"_sel,
+                          ((id(*)(id, SEL, const char *))objc_msgSend)(
+                              "NSString"_cls, "stringWithUTF8String:"_sel, js),
+                          nullptr);
+                    }),
+                    "v@:");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -881,6 +962,11 @@ public:
                      ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
                      "init"_sel);
 
+    //id bookmarkMenuItem = [[NSMenuItem alloc] init];
+    id bookmarkMenuItem = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "init"_sel);
+
     //[menubar addItem:appMenuItem];
     ((id(*)(id, SEL, id))objc_msgSend)(
                      menubar,
@@ -892,6 +978,12 @@ public:
                      menubar,
                      "addItem:"_sel,
                      editMenuItem);
+
+    //[menubar addItem:bookmarkMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     menubar,
+                     "addItem:"_sel,
+                     bookmarkMenuItem);
 
     //[NSApp setMainMenu:menubar];
     ((id(*)(id, SEL, id))objc_msgSend)(
@@ -963,6 +1055,30 @@ public:
                      "paste_text:"_sel,
                      "v"_str);
 
+    //id bookmarkMenu = [[NSMenu alloc] init];
+    id bookmarkMenu = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenu"_cls, "alloc"_sel),
+                     "init"_sel);
+
+    //[bookmarkMenu setTitle:@"Bookmark"];
+    ((void(*)(id, SEL, id))objc_msgSend)(bookmarkMenu, "setTitle:"_sel, "Bookmark"_str);
+
+    //id addBookmarkMenuItem = [[NSMenuItem alloc] initWithTitle:@"Add Bookmark" action:@selector(add_bookmark:) keyEquivalent:@"b"];
+    id addBookmarkMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Add Bookmark"_str,
+                     "add_bookmark:"_sel,
+                     "b"_str);
+
+    //id showBookmarkMenuItem = [[NSMenuItem alloc] initWithTitle:@"Show Bookmark" action:@selector(show_bookmark:) keyEquivalent:@"l"];
+    id showBookmarkMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Show Bookmark"_str,
+                     "show_bookmark:"_sel,
+                     "l"_str);
+
     //[appMenu addItem:quitMenuItem];
     ((void (*)(id, SEL, id))objc_msgSend)(
                      appMenu,
@@ -1004,6 +1120,24 @@ public:
                      editMenuItem,
                      "setSubmenu:"_sel,
                      editMenu);
+
+    //[bookmarkMenu addItem:addBookmarkMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     bookmarkMenu,
+                     "addItem:"_sel,
+                     addBookmarkMenuItem);
+
+    //[bookmarkMenu addItem:showBookmarkMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     bookmarkMenu,
+                     "addItem:"_sel,
+                     showBookmarkMenuItem);
+
+    //[bookmarkMenuItem setSubmenu:bookmarkMenu];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     bookmarkMenuItem,
+                     "setSubmenu:"_sel,
+                     bookmarkMenu);
 
     // Main window
     if (window == nullptr) {

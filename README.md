@@ -8,7 +8,7 @@
 
 A tiny cross-platform webview library for C/C++/Golang to build modern cross-platform GUIs. Also, there are [Rust bindings](https://github.com/Boscop/webview-rs), [Python bindings](https://github.com/zserge/webview-python), [Nim bindings](https://github.com/oskca/webview), [Haskell](https://github.com/lettier/webviewhs), [C# bindings](https://github.com/webview/webview_csharp) and [Java bindings](https://github.com/shannah/webviewjar) available.
 
-The goal of the project is to create a common HTML5 UI abstraction layer for the most widely used platforms. 
+The goal of the project is to create a common HTML5 UI abstraction layer for the most widely used platforms.
 
 It supports two-way JavaScript bindings (to call JavaScript from C/C++/Go and to call C/C++/Go from JavaScript).
 
@@ -55,6 +55,13 @@ func main() {
 	})
 	w.Bind("customContextMenu", func(message string) {
 		w.CustomContextMenu(message)
+	})
+	w.Bind("onAddBookmark", func(url string) {
+		fmt.Println("onAddBookmark")
+		fmt.Println(url)
+	})
+	w.Bind("onShowBookmark", func() {
+		fmt.Println("onShowBookmark")
 	})
 
 	// Webview Init
@@ -230,4 +237,3 @@ FreeBSD is also supported, to install webkit2 run `pkg install webkit2-gtk3`.
 
 Code is distributed under MIT license, feel free to use it in your proprietary
 projects as well.
-
