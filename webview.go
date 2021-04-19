@@ -103,10 +103,17 @@ type WebView interface {
 	// SetSize updates native window size. See Hint constants.
 	SetSize(w int, h int, hint Hint)
 
+	// SetSizeSub updates native sub-window size. See Hint constants.
+	SetSizeSub(w int, h int, hint Hint)
+
 	// Navigate navigates webview to the given URL. URL may be a data URI, i.e.
 	// "data:text/text,<html>...</html>". It is often ok not to url-encode it
 	// properly, webview will re-encode it for you.
 	Navigate(url string)
+
+	// NavigateSub navigates sub-webview to the given URL. URL may be a data URI.
+	// Only osx yet.
+	NavigateSub(url string)
 
 	// Init injects JavaScript code at the initialization of the new page. Every
 	// time the webview will open a the new page - this initialization code will
@@ -197,6 +204,12 @@ func (w *webview) Navigate(url string) {
 	C.webview_navigate(w.w, s)
 }
 
+func (w *webview) NavigateSub(url string) {
+	s := C.CString(url)
+	defer C.free(unsafe.Pointer(s))
+	C.webview_navigate_sub(w.w, s)
+}
+
 func (w *webview) SetTitle(title string) {
 	s := C.CString(title)
 	defer C.free(unsafe.Pointer(s))
@@ -205,6 +218,10 @@ func (w *webview) SetTitle(title string) {
 
 func (w *webview) SetSize(width int, height int, hint Hint) {
 	C.webview_set_size(w.w, C.int(width), C.int(height), C.int(hint))
+}
+
+func (w *webview) SetSizeSub(width int, height int, hint Hint) {
+	C.webview_set_size_sub(w.w, C.int(width), C.int(height), C.int(hint))
 }
 
 func (w *webview) Init(js string) {

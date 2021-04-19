@@ -75,10 +75,18 @@ WEBVIEW_API void webview_set_title(webview_t w, const char *title);
 WEBVIEW_API void webview_set_size(webview_t w, int width, int height,
                                   int hints);
 
+// Updates native sub-window size. See WEBVIEW_HINT constants.
+WEBVIEW_API void webview_set_size_sub(webview_t w, int width, int height,
+                                  int hints);
+
 // Navigates webview to the given URL. URL may be a data URI, i.e.
 // "data:text/text,<html>...</html>". It is often ok not to url-encode it
 // properly, webview will re-encode it for you.
 WEBVIEW_API void webview_navigate(webview_t w, const char *url);
+
+// Navigates sub-webview to the given URL. URL may be a data URI.
+// Only osx yet.
+WEBVIEW_API void webview_navigate_sub(webview_t w, const char *url);
 
 // Injects JavaScript code at the initialization of the new page. Every time
 // the webview will open a the new page - this initialization code will be
@@ -546,8 +554,16 @@ public:
     }
   }
 
+  void set_size_sub(int width, int height, int hints) {
+    // TODO
+  }
+
   void navigate(const std::string url) {
     webkit_web_view_load_uri(WEBKIT_WEB_VIEW(m_webview), url.c_str());
+  }
+
+  void navigate_sub(const std::string url) {
+    // TODO
   }
 
   void init(const std::string js) {
@@ -618,6 +634,8 @@ using browser_engine = gtk_webkit_engine;
 
 #define WKNavigationActionPolicyCancel 0
 #define WKNavigationActionPolicyAllow 1
+
+#define NSWindowCloseButton 0
 
 namespace webview {
 
@@ -939,6 +957,36 @@ public:
                           nullptr);
                     }),
                     "v@:");
+    class_addMethod(cls, "open_link_subwindow:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      const char *js = {
+                          "var selection = window.getSelection();"
+                          "if (selection.rangeCount > 0){"
+                          " selection.getRangeAt(0).startContainer.parentNode.href;"
+                          "}"};
+                      id block = (id)(^(id text, CGError err) {
+                        if (!err) {
+                            CGRect webview_sub_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(w->m_webview_sub, "frame"_sel);
+                            if (int(webview_sub_frame.size.width) == 0 && int(webview_sub_frame.size.height) == 0) {
+                                CGRect webview_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(w->m_webview, "frame"_sel);
+                                w->set_size_sub(int(webview_frame.size.width),
+                                    int(webview_frame.size.height),
+                                    WEBVIEW_HINT_NONE);
+                            }
+                            w->navigate_sub(((const char * (*)(id, SEL))objc_msgSend)(text, "UTF8String"_sel));
+                        }
+                      });
+                      ((void (*)(id, SEL, id, id))objc_msgSend)(
+                          w->m_webview, "evaluateJavaScript:completionHandler:"_sel,
+                          ((id(*)(id, SEL, const char *))objc_msgSend)(
+                              "NSString"_cls, "stringWithUTF8String:"_sel, js),
+                          block);
+                    }),
+                    "v@:");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -1150,6 +1198,13 @@ public:
       m_window = (id)window;
     }
 
+    // Sub window
+    m_window_sub = ((id(*)(id, SEL))objc_msgSend)("NSWindow"_cls, "alloc"_sel);
+    m_window_sub =
+        ((id(*)(id, SEL, CGRect, int, unsigned long, int))objc_msgSend)(
+            m_window_sub, "initWithContentRect:styleMask:backing:defer:"_sel,
+            CGRectMake(0, 0, 0, 0), 0, NSBackingStoreBuffered, 0);
+
     // Webview
     auto config =
         ((id(*)(id, SEL))objc_msgSend)("WKWebViewConfiguration"_cls, "new"_sel);
@@ -1157,6 +1212,13 @@ public:
         ((id(*)(id, SEL))objc_msgSend)(config, "userContentController"_sel);
     m_webview = ((id(*)(id, SEL))objc_msgSend)("WKWebView"_cls, "alloc"_sel);
     m_host = ""_str;
+
+    // Sub Webview
+    auto config_sub =
+        ((id(*)(id, SEL))objc_msgSend)("WKWebViewConfiguration"_cls, "new"_sel);
+    m_manager_sub =
+        ((id(*)(id, SEL))objc_msgSend)(config_sub, "userContentController"_sel);
+    m_webview_sub =  ((id(*)(id, SEL))objc_msgSend)("WKWebView"_cls, "alloc"_sel);
 
     if (debug) {
       // Equivalent Obj-C:
@@ -1203,6 +1265,13 @@ public:
         m_manager, "addScriptMessageHandler:name:"_sel, delegate,
         "external"_str);
 
+    ((void (*)(id, SEL, CGRect, id))objc_msgSend)(
+        m_webview_sub, "initWithFrame:configuration:"_sel, CGRectMake(0, 0, 0, 0),
+        config_sub);
+    ((void (*)(id, SEL, id, id))objc_msgSend)(
+        m_manager_sub, "addScriptMessageHandler:name:"_sel, delegate,
+        "external"_str);
+
     // [_webView setNavigationDelegate:self];
     ((void (*)(id, SEL, id))objc_msgSend)(m_webview,
         "setNavigationDelegate:"_sel, delegate);
@@ -1220,6 +1289,10 @@ public:
     ((void (*)(id, SEL, id))objc_msgSend)(m_window, "setContentView:"_sel,
                                           m_webview);
     ((void (*)(id, SEL, id))objc_msgSend)(m_window, "makeKeyAndOrderFront:"_sel,
+                                          nullptr);
+    ((void (*)(id, SEL, id))objc_msgSend)(m_window_sub, "setContentView:"_sel,
+                                          m_webview_sub);
+    ((void (*)(id, SEL, id))objc_msgSend)(m_window_sub, "makeKeyAndOrderFront:"_sel,
                                           nullptr);
   }
   ~cocoa_wkwebview_engine() { close(); }
@@ -1274,6 +1347,36 @@ public:
     }
     ((void (*)(id, SEL))objc_msgSend)(m_window, "center"_sel);
   }
+  void set_size_sub(int width, int height, int hints) {
+    auto style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                 NSWindowStyleMaskMiniaturizable;
+    if (hints != WEBVIEW_HINT_FIXED) {
+      style = style | NSWindowStyleMaskResizable;
+    }
+    ((void (*)(id, SEL, unsigned long))objc_msgSend)(
+        m_window_sub, "setStyleMask:"_sel, style);
+
+    if (hints == WEBVIEW_HINT_MIN) {
+      ((void (*)(id, SEL, CGSize))objc_msgSend)(
+          m_window_sub, "setContentMinSize:"_sel, CGSizeMake(width, height));
+    } else if (hints == WEBVIEW_HINT_MAX) {
+      ((void (*)(id, SEL, CGSize))objc_msgSend)(
+          m_window_sub, "setContentMaxSize:"_sel, CGSizeMake(width, height));
+    } else {
+      ((void (*)(id, SEL, CGRect, BOOL, BOOL))objc_msgSend)(
+          m_window_sub, "setFrame:display:animate:"_sel,
+          CGRectMake(0, 0, width, height), 1, 0);
+    }
+    ((void (*)(id, SEL))objc_msgSend)(m_window_sub, "center"_sel);
+
+    // NSButton *closeButton = [window standardWindowButton:NSWindowCloseButton];
+    id closeButton = ((id (*)(id, SEL, unsigned long))objc_msgSend)(
+          m_window_sub, "standardWindowButton:"_sel,
+          NSWindowCloseButton);
+
+    // [closeButton setEnabled:NO];
+    ((void (*)(id, SEL, BOOL))objc_msgSend)(closeButton, "setEnabled:"_sel, 0);
+  }
   void navigate(const std::string url) {
     auto nsurl = ((id(*)(id, SEL, id))objc_msgSend)(
         "NSURL"_cls, "URLWithString:"_sel,
@@ -1282,6 +1385,17 @@ public:
 
     ((void (*)(id, SEL, id))objc_msgSend)(
         m_webview, "loadRequest:"_sel,
+        ((id(*)(id, SEL, id))objc_msgSend)("NSURLRequest"_cls,
+                                           "requestWithURL:"_sel, nsurl));
+  }
+  void navigate_sub(const std::string url) {
+    auto nsurl = ((id(*)(id, SEL, id))objc_msgSend)(
+        "NSURL"_cls, "URLWithString:"_sel,
+        ((id(*)(id, SEL, const char *))objc_msgSend)(
+            "NSString"_cls, "stringWithUTF8String:"_sel, url.c_str()));
+
+    ((void (*)(id, SEL, id))objc_msgSend)(
+        m_webview_sub, "loadRequest:"_sel,
         ((id(*)(id, SEL, id))objc_msgSend)("NSURLRequest"_cls,
                                            "requestWithURL:"_sel, nsurl));
   }
@@ -1359,6 +1473,11 @@ public:
             "Copy Link"_str,
             "copy_link:"_sel,
             ""_str, 2);
+        ((void (*)(id, SEL, id, SEL, id, int))objc_msgSend)(
+            menu, "insertItemWithTitle:action:keyEquivalent:atIndex:"_sel,
+            "Open Link in sub window"_str,
+            "open_link_subwindow:"_sel,
+            ""_str, 3);
     }
     ((void (*)(id, SEL, id, id, id))objc_msgSend)(
         menu, "popUpMenuPositioningItem:atLocation:inView:"_sel,
@@ -1376,10 +1495,16 @@ public:
 
 private:
   virtual void on_message(const std::string msg) = 0;
-  void close() { ((void (*)(id, SEL))objc_msgSend)(m_window, "close"_sel); }
+  void close() {
+      ((void (*)(id, SEL))objc_msgSend)(m_window, "close"_sel);
+      ((void (*)(id, SEL))objc_msgSend)(m_window_sub, "close"_sel);
+  }
   id m_window;
   id m_webview;
   id m_manager;
+  id m_window_sub;
+  id m_webview_sub;
+  id m_manager_sub;
   id m_host;
 };
 
@@ -1429,6 +1554,7 @@ public:
   virtual ~browser() = default;
   virtual bool embed(HWND, bool, msg_cb_t) = 0;
   virtual void navigate(const std::string url) = 0;
+  virtual void navigate_sub(const std::string url) = 0;
   virtual void eval(const std::string js) = 0;
   virtual void init(const std::string js) = 0;
   virtual void screenshot(const std::string path) = 0;
@@ -1484,6 +1610,10 @@ public:
       Uri uri(winrt::to_hstring(url));
       m_webview.Navigate(uri);
     }
+  }
+
+  void navigate_sub(const std::string url) override {
+    // TODO
   }
 
   void init(const std::string js) override {
@@ -1576,6 +1706,10 @@ public:
     auto wurl = to_lpwstr(url);
     m_webview->Navigate(wurl);
     delete[] wurl;
+  }
+
+  void navigate_sub(const std::string url) override {
+    // TODO
   }
 
   void init(const std::string js) override {
@@ -1806,7 +1940,12 @@ public:
     }
   }
 
+  void set_size_sub(int width, int height, int hints) {
+    // TODO
+  }
+
   void navigate(const std::string url) { m_browser->navigate(url); }
+  void navigate_sub(const std::string url) { m_browser->navigate_sub(url); }
   void eval(const std::string js) { m_browser->eval(js); }
   void init(const std::string js) { m_browser->init(js); }
   void screenshot(const std::string path) { m_browser->screenshot(path); }
@@ -1847,6 +1986,20 @@ public:
       browser_engine::navigate("data:text/html," + url_encode(html));
     } else {
       browser_engine::navigate(url);
+    }
+  }
+
+  void navigate_sub(const std::string url) {
+    if (url == "") {
+      browser_engine::navigate_sub("data:text/html," +
+                               url_encode("<html><body>Hello</body></html>"));
+      return;
+    }
+    std::string html = html_from_uri(url);
+    if (html != "") {
+      browser_engine::navigate_sub("data:text/html," + url_encode(html));
+    } else {
+      browser_engine::navigate_sub(url);
     }
   }
 
@@ -1950,8 +2103,17 @@ WEBVIEW_API void webview_set_size(webview_t w, int width, int height,
   static_cast<webview::webview *>(w)->set_size(width, height, hints);
 }
 
+WEBVIEW_API void webview_set_size_sub(webview_t w, int width, int height,
+                                  int hints) {
+  static_cast<webview::webview *>(w)->set_size_sub(width, height, hints);
+}
+
 WEBVIEW_API void webview_navigate(webview_t w, const char *url) {
   static_cast<webview::webview *>(w)->navigate(url);
+}
+
+WEBVIEW_API void webview_navigate_sub(webview_t w, const char *url) {
+  static_cast<webview::webview *>(w)->navigate_sub(url);
 }
 
 WEBVIEW_API void webview_init(webview_t w, const char *js) {
