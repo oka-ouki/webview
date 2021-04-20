@@ -707,9 +707,8 @@ public:
                       id url = ((id (*)(id, SEL))objc_msgSend)(request, "URL"_sel);
                       id url_str = ((id (*)(id, SEL))objc_msgSend)(url, "host"_sel);
                       BOOL not_allowed = false;
-                      if (((long (*)(id, SEL))objc_msgSend)(w->m_host, "length"_sel) > 0){
-                          id host_array = ((id (*)(id, SEL, id))objc_msgSend)(w->m_host, "componentsSeparatedByString:"_sel, ","_str);
-                          not_allowed = ((BOOL (*)(id, SEL, id))objc_msgSend)(host_array, "containsObject:"_sel, url_str);
+                      if (w->m_host != nullptr){
+                          not_allowed = ((BOOL (*)(id, SEL, id))objc_msgSend)(w->m_host, "containsObject:"_sel, url_str);
                       }
                       if (!not_allowed) {
                           decision_handler(WKNavigationActionPolicyAllow);
@@ -1215,7 +1214,7 @@ public:
     m_manager =
         ((id(*)(id, SEL))objc_msgSend)(config, "userContentController"_sel);
     m_webview = ((id(*)(id, SEL))objc_msgSend)("WKWebView"_cls, "alloc"_sel);
-    m_host = ""_str;
+    m_host = nullptr;
 
     // Sub Webview
     auto config_sub =
@@ -1496,8 +1495,12 @@ public:
         m_webview);
   }
   void set_not_allowed_host(const std::string host) {
-     m_host = ((id(*)(id, SEL, const char *))objc_msgSend)(
-            "NSString"_cls, "stringWithUTF8String:"_sel, host.c_str());
+    if (strlen(host.c_str()) > 0){
+      m_host = ((id (*)(id, SEL, id))objc_msgSend)(
+          ((id(*)(id, SEL, const char *))objc_msgSend)(
+              "NSString"_cls, "stringWithUTF8String:"_sel, host.c_str()),
+          "componentsSeparatedByString:"_sel, ","_str);
+    }
   }
 
 private:
