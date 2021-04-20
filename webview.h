@@ -637,6 +637,8 @@ using browser_engine = gtk_webkit_engine;
 
 #define NSWindowCloseButton 0
 
+#define NSWindowAbove 1
+
 namespace webview {
 
 // Helpers to avoid too much typing
@@ -1376,6 +1378,9 @@ public:
 
     // [closeButton setEnabled:NO];
     ((void (*)(id, SEL, BOOL))objc_msgSend)(closeButton, "setEnabled:"_sel, 0);
+
+    // [window addChildWindow:window_sub ordered:NSWindowAbove]
+    ((void (*)(id, SEL, id, long))objc_msgSend)(m_window, "addChildWindow:ordered:"_sel, m_window_sub, NSWindowAbove);
   }
   void navigate(const std::string url) {
     auto nsurl = ((id(*)(id, SEL, id))objc_msgSend)(
