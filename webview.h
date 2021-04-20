@@ -93,10 +93,18 @@ WEBVIEW_API void webview_navigate_sub(webview_t w, const char *url);
 // executed. It is guaranteed that code is executed before window.onload.
 WEBVIEW_API void webview_init(webview_t w, const char *js);
 
+// Injects JavaScript code in sub-webview.
+// Only osx yet.
+WEBVIEW_API void webview_init_sub(webview_t w, const char *js);
+
 // Evaluates arbitrary JavaScript code. Evaluation happens asynchronously, also
 // the result of the expression is ignored. Use RPC bindings if you want to
 // receive notifications about the results of the evaluation.
 WEBVIEW_API void webview_eval(webview_t w, const char *js);
+
+// Evaluates arbitrary JavaScript code in sub-webview.
+// Only osx yet.
+WEBVIEW_API void webview_eval_sub(webview_t w, const char *js);
 
 // Binds a native C callback so that it will appear under the given name as a
 // global JavaScript function. Internally it uses webview_init(). Callback
@@ -575,9 +583,17 @@ public:
                      WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL));
   }
 
+  void init_sub(const std::string js) {
+    // TODO
+  }
+
   void eval(const std::string js) {
     webkit_web_view_run_javascript(WEBKIT_WEB_VIEW(m_webview), js.c_str(), NULL,
                                    NULL, NULL);
+  }
+
+  void eval_sub(const std::string js) {
+    // TODO
   }
 
   void screenshot(const std::string path) {
@@ -1417,9 +1433,26 @@ public:
                 "NSString"_cls, "stringWithUTF8String:"_sel, js.c_str()),
             WKUserScriptInjectionTimeAtDocumentStart, 1));
   }
+  void init_sub(const std::string js) {
+    ((void (*)(id, SEL, id))objc_msgSend)(
+        m_manager_sub, "addUserScript:"_sel,
+        ((id(*)(id, SEL, id, long, BOOL))objc_msgSend)(
+            ((id(*)(id, SEL))objc_msgSend)("WKUserScript"_cls, "alloc"_sel),
+            "initWithSource:injectionTime:forMainFrameOnly:"_sel,
+            ((id(*)(id, SEL, const char *))objc_msgSend)(
+                "NSString"_cls, "stringWithUTF8String:"_sel, js.c_str()),
+            WKUserScriptInjectionTimeAtDocumentStart, 1));
+  }
   void eval(const std::string js) {
     ((void (*)(id, SEL, id, id))objc_msgSend)(
         m_webview, "evaluateJavaScript:completionHandler:"_sel,
+        ((id(*)(id, SEL, const char *))objc_msgSend)(
+            "NSString"_cls, "stringWithUTF8String:"_sel, js.c_str()),
+        nullptr);
+  }
+  void eval_sub(const std::string js) {
+    ((void (*)(id, SEL, id, id))objc_msgSend)(
+        m_webview_sub, "evaluateJavaScript:completionHandler:"_sel,
         ((id(*)(id, SEL, const char *))objc_msgSend)(
             "NSString"_cls, "stringWithUTF8String:"_sel, js.c_str()),
         nullptr);
@@ -1566,7 +1599,9 @@ public:
   virtual void navigate(const std::string url) = 0;
   virtual void navigate_sub(const std::string url) = 0;
   virtual void eval(const std::string js) = 0;
+  virtual void eval_sub(const std::string js) = 0;
   virtual void init(const std::string js) = 0;
+  virtual void init_sub(const std::string js) = 0;
   virtual void screenshot(const std::string path) = 0;
   virtual void custom_context_menu(const std::string message) = 0;
   virtual void set_not_allowed_host(const std::string host) = 0;
@@ -1630,9 +1665,17 @@ public:
     init_js = init_js + "(function(){" + js + "})();";
   }
 
+  void init_sub(const std::string js) override {
+    // TODO
+  }
+
   void eval(const std::string js) override {
     m_webview.InvokeScriptAsync(
         L"eval", single_threaded_vector<hstring>({winrt::to_hstring(js)}));
+  }
+
+  void eval_sub(const std::string js) override {
+    // TODO
   }
 
   void screenshot(const std::string path) override {
@@ -1728,10 +1771,18 @@ public:
     delete[] wjs;
   }
 
+  void init_sub(const std::string js) override {
+    // TODO
+  }
+
   void eval(const std::string js) override {
     LPCWSTR wjs = to_lpwstr(js);
     m_webview->ExecuteScript(wjs, nullptr);
     delete[] wjs;
+  }
+
+  void eval_sub(const std::string js) override {
+    // TODO
   }
 
   void screenshot(const std::string path) override {
@@ -1957,7 +2008,9 @@ public:
   void navigate(const std::string url) { m_browser->navigate(url); }
   void navigate_sub(const std::string url) { m_browser->navigate_sub(url); }
   void eval(const std::string js) { m_browser->eval(js); }
+  void eval_sub(const std::string js) { m_browser->eval_sub(js); }
   void init(const std::string js) { m_browser->init(js); }
+  void init_sub(const std::string js) { m_browser->init_sub(js); }
   void screenshot(const std::string path) { m_browser->screenshot(path); }
   void custom_context_menu(const std::string message) { m_browser->custom_context_menu(message); }
   void set_not_allowed_host(const std::string host) { m_browser->set_not_allowed_host(host); }
@@ -2130,8 +2183,16 @@ WEBVIEW_API void webview_init(webview_t w, const char *js) {
   static_cast<webview::webview *>(w)->init(js);
 }
 
+WEBVIEW_API void webview_init_sub(webview_t w, const char *js) {
+  static_cast<webview::webview *>(w)->init_sub(js);
+}
+
 WEBVIEW_API void webview_eval(webview_t w, const char *js) {
   static_cast<webview::webview *>(w)->eval(js);
+}
+
+WEBVIEW_API void webview_eval_sub(webview_t w, const char *js) {
+  static_cast<webview::webview *>(w)->eval_sub(js);
 }
 
 WEBVIEW_API void webview_bind(webview_t w, const char *name,

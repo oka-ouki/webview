@@ -120,10 +120,18 @@ type WebView interface {
 	// be executed. It is guaranteed that code is executed before window.onload.
 	Init(js string)
 
+	// InitSub injects JavaScript code in sub-webview.
+	// Only osx yet.
+	InitSub(js string)
+
 	// Eval evaluates arbitrary JavaScript code. Evaluation happens asynchronously,
 	// also the result of the expression is ignored. Use RPC bindings if you want
 	// to receive notifications about the results of the evaluation.
 	Eval(js string)
+
+	// EvalSub evaluates arbitrary JavaScript code in sub-webview.
+	// Only osx yet.
+	EvalSub(js string)
 
 	// Bind binds a callback function so that it will appear under the given name
 	// as a global JavaScript function. Internally it uses webview_init().
@@ -230,10 +238,22 @@ func (w *webview) Init(js string) {
 	C.webview_init(w.w, s)
 }
 
+func (w *webview) InitSub(js string) {
+	s := C.CString(js)
+	defer C.free(unsafe.Pointer(s))
+	C.webview_init_sub(w.w, s)
+}
+
 func (w *webview) Eval(js string) {
 	s := C.CString(js)
 	defer C.free(unsafe.Pointer(s))
 	C.webview_eval(w.w, s)
+}
+
+func (w *webview) EvalSub(js string) {
+	s := C.CString(js)
+	defer C.free(unsafe.Pointer(s))
+	C.webview_eval_sub(w.w, s)
 }
 
 func (w *webview) Dispatch(f func()) {
