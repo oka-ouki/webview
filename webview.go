@@ -135,15 +135,15 @@ type WebView interface {
 	// f must return either value and error or just error
 	Bind(name string, f interface{}) error
 
-	// Take Screenshot and save image file into path.
+	// Screenshot take screenshot and save image file into path.
 	// Only osx yet.
 	Screenshot(path string)
 
-	// Show custom context-menu.
+	// CustomContextMenu show custom context-menu.
 	// Only osx yet.
 	CustomContextMenu(message string)
 
-	// Set not allowed hosts.
+	// SetNotAllowedHost set not allowed hosts.
 	// Only osx yet.
 	SetNotAllowedHost(hosts []string)
 }
