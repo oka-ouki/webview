@@ -144,7 +144,7 @@ type WebView interface {
 	Bind(name string, f interface{}) error
 
 	// Screenshot take screenshot and save image file into path.
-	// Only osx yet.
+	// Only osx and linux yet.
 	Screenshot(path string)
 
 	// CustomContextMenu show custom context-menu.

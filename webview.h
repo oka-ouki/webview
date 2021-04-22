@@ -124,7 +124,7 @@ WEBVIEW_API void webview_return(webview_t w, const char *seq, int status,
                                 const char *result);
 
 // Take Screenshot and save image file into path.
-// Only osx yet.
+// Only osx and linux yet.
 WEBVIEW_API void webview_screenshot(webview_t w, const char *path);
 
 // Show custom context-menu.
@@ -597,7 +597,13 @@ public:
   }
 
   void screenshot(const std::string path) {
-    // TODO
+    GdkPixbuf *pixbuf;
+    gint width, height;
+    GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(m_window));
+    gtk_window_get_size(GTK_WINDOW(m_window), &width, &height);
+    pixbuf = gdk_pixbuf_get_from_window(gdk_window, 0, 0, width, height);
+    gdk_pixbuf_save(pixbuf, path.c_str(), "png", NULL, NULL);
+    g_object_unref(G_OBJECT(pixbuf));
   }
 
   void custom_context_menu(const std::string message) {
