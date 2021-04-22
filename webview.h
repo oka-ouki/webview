@@ -1006,6 +1006,33 @@ public:
                           block);
                     }),
                     "v@:");
+    class_addMethod(cls, "show_sub_window:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      CGRect webview_sub_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(w->m_webview_sub, "frame"_sel);
+                      if (int(webview_sub_frame.size.width) == 0 || int(webview_sub_frame.size.height) == 0) {
+                          CGRect webview_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(w->m_webview, "frame"_sel);
+                          w->set_size_sub(int(webview_frame.size.width),
+                              int(webview_frame.size.height),
+                              WEBVIEW_HINT_NONE);
+                      }
+                    }),
+                    "v@:");
+    class_addMethod(cls, "hide_sub_window:"_sel,
+                    (IMP)(+[](id self, SEL) {
+                      auto w =
+                          (cocoa_wkwebview_engine *)objc_getAssociatedObject(
+                              self, "webview");
+                      assert(w);
+                      CGRect webview_sub_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(w->m_webview_sub, "frame"_sel);
+                      if (int(webview_sub_frame.size.width) > 0 && int(webview_sub_frame.size.height) > 0) {
+                          w->set_size_sub(0, 0, WEBVIEW_HINT_NONE);
+                      }
+                    }),
+                    "v@:");
     objc_registerClassPair(cls);
 
     auto delegate = ((id(*)(id, SEL))objc_msgSend)((id)cls, "new"_sel);
@@ -1034,6 +1061,11 @@ public:
                      ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
                      "init"_sel);
 
+    //id windowMenuItem = [[NSMenuItem alloc] init];
+    id windowMenuItem = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "init"_sel);
+
     //[menubar addItem:appMenuItem];
     ((id(*)(id, SEL, id))objc_msgSend)(
                      menubar,
@@ -1051,6 +1083,12 @@ public:
                      menubar,
                      "addItem:"_sel,
                      bookmarkMenuItem);
+
+    //[menubar addItem:windowMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     menubar,
+                     "addItem:"_sel,
+                     windowMenuItem);
 
     //[NSApp setMainMenu:menubar];
     ((id(*)(id, SEL, id))objc_msgSend)(
@@ -1146,6 +1184,30 @@ public:
                      "show_bookmark:"_sel,
                      "l"_str);
 
+    //id windowMenu = [[NSMenu alloc] init];
+    id windowMenu = ((id(*)(id, SEL))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenu"_cls, "alloc"_sel),
+                     "init"_sel);
+
+    //[windowMenu setTitle:@"Window"];
+    ((void(*)(id, SEL, id))objc_msgSend)(windowMenu, "setTitle:"_sel, "Window"_str);
+
+    //id showSubWindowMenuItem = [[NSMenuItem alloc] initWithTitle:@"Show SubWindow" action:@selector(show_sub_window:) keyEquivalent:@""];
+    id showSubWindowMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Show SubWindow"_str,
+                     "show_sub_window:"_sel,
+                     ""_str);
+
+    //id hideSubWindowMenuItem = [[NSMenuItem alloc] initWithTitle:@"Hide SubWindow" action:@selector(hide_sub_window:) keyEquivalent:@""];
+    id hideSubWindowMenuItem = ((id(*)(id, SEL, id, SEL, id))objc_msgSend)(
+                     ((id(*)(id, SEL))objc_msgSend)("NSMenuItem"_cls, "alloc"_sel),
+                     "initWithTitle:action:keyEquivalent:"_sel,
+                     "Hide SubWindow"_str,
+                     "hide_sub_window:"_sel,
+                     ""_str);
+
     //[appMenu addItem:quitMenuItem];
     ((void (*)(id, SEL, id))objc_msgSend)(
                      appMenu,
@@ -1205,6 +1267,24 @@ public:
                      bookmarkMenuItem,
                      "setSubmenu:"_sel,
                      bookmarkMenu);
+
+    //[windowMenu addItem:showSubWindowMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     windowMenu,
+                     "addItem:"_sel,
+                     showSubWindowMenuItem);
+
+    //[windowMenu addItem:hideSubWindowMenuItem];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     windowMenu,
+                     "addItem:"_sel,
+                     hideSubWindowMenuItem);
+
+    //[windowMenuItem setSubmenu:windowMenu];
+    ((id(*)(id, SEL, id))objc_msgSend)(
+                     windowMenuItem,
+                     "setSubmenu:"_sel,
+                     windowMenu);
 
     // Main window
     if (window == nullptr) {
