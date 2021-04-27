@@ -541,7 +541,6 @@ public:
                            G_CALLBACK(+[](GAction  *action,
                                           GVariant *parameter,
                                           gpointer  arg) {
-                               auto *w = static_cast<gtk_webkit_engine *>(arg);
                                time_t t = time(NULL);
                                struct tm tm = *localtime(&t);
                                char file_name[15];
@@ -555,14 +554,8 @@ public:
                                    (unsigned)tm.tm_sec);
                                std::string path = ".png";
                                path.insert(0, file_name);
-                               GdkPixbuf *pixbuf;
-                               gint width = 0;
-                               gint height = 0;
-                               GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(w->m_window));
-                               gtk_window_get_size(GTK_WINDOW(w->m_window), &width, &height);
-                               pixbuf = gdk_pixbuf_get_from_window(gdk_window, 0, 0, width, height);
-                               gdk_pixbuf_save(pixbuf, path.c_str(), "png", NULL, NULL);
-                               g_object_unref(G_OBJECT(pixbuf));
+                               static_cast<gtk_webkit_engine *>(arg)->screenshot(path.c_str());
+                               return false;
                            }),
                            self);
                        WebKitContextMenuItem *item = webkit_context_menu_item_new_from_gaction(
@@ -642,11 +635,10 @@ public:
   }
 
   void screenshot(const std::string path) {
-    GdkPixbuf *pixbuf;
     gint width, height;
-    GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(m_window));
+    GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(m_webview));
     gtk_window_get_size(GTK_WINDOW(m_window), &width, &height);
-    pixbuf = gdk_pixbuf_get_from_window(gdk_window, 0, 0, width, height);
+    GdkPixbuf *pixbuf = gdk_pixbuf_get_from_window(gdk_window, 0, 0, width, height);
     gdk_pixbuf_save(pixbuf, path.c_str(), "png", NULL, NULL);
     g_object_unref(G_OBJECT(pixbuf));
   }
