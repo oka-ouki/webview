@@ -527,6 +527,51 @@ public:
       webkit_settings_set_enable_developer_extras(settings, true);
     }
 
+    g_signal_connect(G_OBJECT(m_webview), "context-menu",
+                     G_CALLBACK(+[](WebKitWebView       *view,
+                                    WebKitContextMenu   *context_menu,
+                                    GdkEvent            *event,
+                                    WebKitHitTestResult *hit_test_result,
+                                    gpointer            *self) {
+                       webkit_context_menu_append(context_menu,
+                           webkit_context_menu_item_new_separator());
+
+                       GSimpleAction *action = g_simple_action_new("screenshot", NULL);
+                       g_signal_connect(action, "activate",
+                           G_CALLBACK(+[](GAction  *action,
+                                          GVariant *parameter,
+                                          gpointer  arg) {
+                               auto *w = static_cast<gtk_webkit_engine *>(arg);
+                               time_t t = time(NULL);
+                               struct tm tm = *localtime(&t);
+                               char file_name[15];
+                               snprintf(file_name, sizeof(file_name),
+                                   "%u%02u%02u%02u%02u%02u",
+                                   (unsigned)(tm.tm_year + 1900),
+                                   (unsigned)(tm.tm_mon + 1),
+                                   (unsigned)tm.tm_mday,
+                                   (unsigned)tm.tm_hour,
+                                   (unsigned)tm.tm_min,
+                                   (unsigned)tm.tm_sec);
+                               std::string path = ".png";
+                               path.insert(0, file_name);
+                               GdkPixbuf *pixbuf;
+                               gint width = 0;
+                               gint height = 0;
+                               GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(w->m_window));
+                               gtk_window_get_size(GTK_WINDOW(w->m_window), &width, &height);
+                               pixbuf = gdk_pixbuf_get_from_window(gdk_window, 0, 0, width, height);
+                               gdk_pixbuf_save(pixbuf, path.c_str(), "png", NULL, NULL);
+                               g_object_unref(G_OBJECT(pixbuf));
+                           }),
+                           self);
+                       WebKitContextMenuItem *item = webkit_context_menu_item_new_from_gaction(
+                           G_ACTION(action), "Screen Shot", NULL);
+                       webkit_context_menu_append(context_menu, item);
+                       return false;
+                     }),
+                     this);
+
     gtk_widget_show_all(m_window);
   }
   void *window() { return (void *)m_window; }
@@ -879,7 +924,7 @@ public:
                           "var element = document.activeElement;"
                           "if (!!element &&"
                           "    (element.tagName == 'INPUT' || element.tagName == 'TEXTAREA')){"
-	                      "element.value = element.value.substr(0, element.selectionStart) + '"
+                          "element.value = element.value.substr(0, element.selectionStart) + '"
                           };
                       const char *text_char = ((const char * (*)(id, SEL))objc_msgSend)(text, "UTF8String"_sel);
                       const char *js_second = {
