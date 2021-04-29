@@ -561,6 +561,27 @@ public:
                        WebKitContextMenuItem *item = webkit_context_menu_item_new_from_gaction(
                            G_ACTION(action), "Screen Shot", NULL);
                        webkit_context_menu_append(context_menu, item);
+
+                       action = g_simple_action_new("deletealldata", NULL);
+                       g_signal_connect(action, "activate",
+                           G_CALLBACK(+[](GAction  *action,
+                                          GVariant *parameter,
+                                          gpointer  arg) {
+                             WebKitWebsiteDataManager *manager = webkit_web_context_get_website_data_manager(
+                                 webkit_web_view_get_context(
+                                     WEBKIT_WEB_VIEW(
+                                         static_cast<gtk_webkit_engine *>(arg)->m_webview)));
+                             webkit_website_data_manager_clear(manager,
+                                                               WEBKIT_WEBSITE_DATA_ALL,
+                                                               0,
+                                                               NULL,
+                                                               NULL,
+                                                               NULL);
+                           }),
+                           self);
+                       item = webkit_context_menu_item_new_from_gaction(
+                           G_ACTION(action), "Delete All Data", NULL);
+                       webkit_context_menu_append(context_menu, item);
                        return false;
                      }),
                      this);
