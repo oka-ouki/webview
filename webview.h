@@ -805,7 +805,7 @@ public:
                                 self, "webview");
                         assert(w);
                         CGRect webview_frame = ((CGRect (*)(id, SEL))objc_msgSend_stret)(w->m_webview, "frame"_sel);
-                        auto snapshot_configuration = ((id(*)(id, SEL))objc_msgSend)("WKSnapshotConfiguration"_cls, "new"_sel);
+                        id snapshot_configuration = ((id(*)(id, SEL))objc_msgSend)("WKSnapshotConfiguration"_cls, "new"_sel);
                         ((void (*)(id, SEL, CGRect))objc_msgSend)(snapshot_configuration, "setRect:"_sel, webview_frame);
                         ((void (*)(id, SEL, BOOL))objc_msgSend)(snapshot_configuration, "setAfterScreenUpdates:"_sel, 0);
 
